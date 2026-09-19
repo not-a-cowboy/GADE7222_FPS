@@ -31,5 +31,14 @@ protected:
 
 	void MoveForward(float InputValue);
 	void MoveRight(float InputValue);
+	void TurnCamera(float InputValue);
+	void LookUp(float InputValue);
+	void Sprint();
+	void StopSprinting();
 
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float SprintSpeed = 1200.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float WalkSpeed = 600.0f;
 };

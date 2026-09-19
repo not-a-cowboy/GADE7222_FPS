@@ -1,5 +1,6 @@
 #include "FPS/Player/PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -31,8 +32,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &APlayerCharacter::Sprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &APlayerCharacter::StopSprinting);
+
 	PlayerInputComponent->BindAxis("MoveForward", this, &APlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APlayerCharacter::MoveRight);
+
+	PlayerInputComponent->BindAxis("TurnCamera", this, &APlayerCharacter::TurnCamera);
+	PlayerInputComponent->BindAxis("LookUp", this, &APlayerCharacter::LookUp);
 
 }
 
@@ -48,5 +56,23 @@ void APlayerCharacter::MoveRight(float InputValue)
 	AddMovementInput(RightDirection, InputValue);
 }
 
+void APlayerCharacter::TurnCamera(float InputValue)
+{
+	AddControllerYawInput(InputValue);
+}
 
 
+void APlayerCharacter::LookUp(float InputValue)
+{
+	AddControllerPitchInput(InputValue);
+}
+
+void APlayerCharacter::Sprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+}
+
+void APlayerCharacter::StopSprinting()
+{
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
