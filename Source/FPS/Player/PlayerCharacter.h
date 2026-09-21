@@ -2,12 +2,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Camera/CameraComponent.h"
+#include "../PlayerHealthComponent.h"
 #include "PlayerCharacter.generated.h"
+
+
 
 UCLASS()
 class FPS_API APlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
+
+	
+	class UUserWidget;
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUserWidget> PlayerHUDClass;
 
 public:
 	// Sets default values for this character's properties
@@ -29,6 +38,12 @@ protected:
 	UPROPERTY(EditAnywhere)
 	class UCameraComponent* PlayerCam;
 
+	UPROPERTY(VisibleAnywhere, Category = "Health")
+	UPlayerHealthComponent* HealthComponent;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUserWidget> PlayerHUDClass;
+
 	void MoveForward(float InputValue);
 	void MoveRight(float InputValue);
 	void TurnCamera(float InputValue);
@@ -41,4 +56,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float WalkSpeed = 600.0f;
+
+
+
+
 };

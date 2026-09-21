@@ -1,5 +1,6 @@
 #include "FPS/Player/PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -10,12 +11,22 @@ APlayerCharacter::APlayerCharacter()
 	PlayerCam = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCam->SetupAttachment(GetRootComponent());
 	PlayerCam->bUsePawnControlRotation = true;
+	HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
 }
 
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (PlayerHUDClass)
+	{
+		UUserWidget* PlayerHUD = CreateWidget<UUserWidget>(GetWorld(), PlayerHUDClass);
+
+		if (PlayerHUD)
+		{
+			PlayerHUD->AddToViewport();
+		}
+	}
 	
 }
 
