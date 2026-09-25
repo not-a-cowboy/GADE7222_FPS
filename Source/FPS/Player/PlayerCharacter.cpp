@@ -2,6 +2,7 @@
 #include "Camera/CameraComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "FPS/Health/PlayerHealthComponent.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
