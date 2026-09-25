@@ -6,12 +6,14 @@
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "PlayerCharacter.generated.h"
 
-
+class AFirearmBase;
 
 UCLASS()
 class FPS_API APlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
+
+	
 
 public:
 	// Sets default values for this character's properties
@@ -52,7 +54,19 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float WalkSpeed = 600.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AFirearmBase> DefaultWeaponClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AFirearmBase> SecondaryWeaponClass;
 
+	UPROPERTY() AFirearmBase* DefaultWeapon;
+	UPROPERTY() AFirearmBase* SecondaryWeapon;
+	UPROPERTY() AFirearmBase* CurrentWeapon;
+
+	void EquipWeapon(AFirearmBase* NewWeapon);
+	void SwitchToDefaultWeapon();
+	void SwitchToSecondaryWeapon();
+	void FireWeapon();
 
 };

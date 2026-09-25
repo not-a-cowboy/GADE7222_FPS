@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPS/Health/PlayerHealthComponent.h"
+#include "FPS/Firearm/FirearmBase.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -29,6 +30,15 @@ void APlayerCharacter::BeginPlay()
 		}
 	}
 	
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+
+	if (DefaultWeaponClass)
+	{
+		DefaultWeapon = GetWorld()->SpawnActor<AFirearmBase>(DefaultWeaponClass, Params);
+		DefaultWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("WeaponSocket"));
+	}
+	EquipWeapon(DefaultWeapon);
 }
 
 // Called every frame
@@ -54,6 +64,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAxis("TurnCamera", this, &APlayerCharacter::TurnCamera);
 	PlayerInputComponent->BindAxis("LookUp", this, &APlayerCharacter::LookUp);
 
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::FireWeapon);
+	PlayerInputComponent->BindAction("Switch1", IE_Pressed, this, &APlayerCharacter::SwitchToDefaultWeapon);
+	PlayerInputComponent->BindAction("Switch2", IE_Pressed, this, &APlayerCharacter::SwitchToSecondaryWeapon);
 }
 
 void APlayerCharacter::MoveForward(float InputValue)
@@ -87,4 +100,27 @@ void APlayerCharacter::Sprint()
 void APlayerCharacter::StopSprinting()
 {
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
+void APlayerCharacter::EquipWeapon(AFirearmBase* NewWeapon)
+{
+	if (!NewWeapon) return;
+	if (CurrentWeapon) CurrentWeapon->SetActorHiddenInGame(true);
+	CurrentWeapon = NewWeapon;
+	CurrentWeapon->SetActorHiddenInGame(false);
+}
+
+void APlayerCharacter::SwitchToDefaultWeapon()
+{
+	EquipWeapon(DefaultWeapon);
+}
+
+void APlayerCharacter::SwitchToSecondaryWeapon()
+{
+	if (SecondaryWeapon) EquipWeapon(SecondaryWeapon);
+}
+
+void APlayerCharacter::FireWeapon()
+{
+	if (CurrentWeapon) CurrentWeapon->Fire(this);
 }
