@@ -69,4 +69,13 @@ protected:
 	void SwitchToSecondaryWeapon();
 	void FireWeapon();
 
+public:
+
+	void PickupSecondaryWeapon(int32 AmmoAmount);
+
+	AFirearmBase* GetSecondaryWeapon() const { return SecondaryWeapon; }
+
+	AFirearmBase* GetCurrentWeapon() const { return CurrentWeapon; }
+
+
 };

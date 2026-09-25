@@ -4,6 +4,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "FPS/Firearm/FirearmBase.h"
+#include "FPS/Firearm/SecondaryWeapon.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -123,4 +124,38 @@ void APlayerCharacter::SwitchToSecondaryWeapon()
 void APlayerCharacter::FireWeapon()
 {
 	if (CurrentWeapon) CurrentWeapon->Fire(this);
+}
+
+void APlayerCharacter::PickupSecondaryWeapon(int32 AmmoAmount)
+{
+	if (SecondaryWeapon)
+	{
+		ASecondaryWeapon* Weapon = Cast<ASecondaryWeapon>(SecondaryWeapon);
+
+		if (Weapon)
+		{
+			Weapon->AddAmmo(AmmoAmount);
+		}
+
+		return;
+	}
+
+	if (SecondaryWeaponClass)
+	{
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+
+		SecondaryWeapon = GetWorld()->SpawnActor<AFirearmBase>(SecondaryWeaponClass, Params);
+
+		if (SecondaryWeapon)
+		{
+			SecondaryWeapon->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				TEXT("WeaponSocket")
+			);
+
+			EquipWeapon(SecondaryWeapon);
+		}
+	}
 }

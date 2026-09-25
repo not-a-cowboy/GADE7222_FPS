@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "GameFramework/Actor.h"
 #include "CoreMinimal.h"
 #include "FirearmBase.generated.h"
 
