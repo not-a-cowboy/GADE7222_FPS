@@ -4,52 +4,54 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "FPS/Firearm/FirearmBase.h"
-#include "FPS/Firearm/SecondaryWeapon.h"
 
-// Sets default values
 APlayerCharacter::APlayerCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
 	PlayerCam = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCam->SetupAttachment(GetRootComponent());
 	PlayerCam->bUsePawnControlRotation = true;
+
 	HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
 }
 
-// Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (PlayerHUDClass)
-	{
-		UUserWidget* PlayerHUD = CreateWidget<UUserWidget>(GetWorld(), PlayerHUDClass);
 
-		if (PlayerHUD)
+	// Only spawn the HUD if controlled by a local human player (prevents Bots from spawning HUDs)
+	if (IsPlayerControlled() && PlayerHUDClass)
+	{
+		if (UUserWidget* PlayerHUD = CreateWidget<UUserWidget>(GetWorld(), PlayerHUDClass))
 		{
 			PlayerHUD->AddToViewport();
 		}
 	}
-	
+
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 
 	if (DefaultWeaponClass)
 	{
 		DefaultWeapon = GetWorld()->SpawnActor<AFirearmBase>(DefaultWeaponClass, Params);
-		DefaultWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("WeaponSocket"));
+		if (DefaultWeapon)
+		{
+			DefaultWeapon->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				TEXT("WeaponSocket")
+			);
+			EquipWeapon(DefaultWeapon);
+		}
 	}
-	EquipWeapon(DefaultWeapon);
 }
 
-// Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
-// Called to bind functionality to input
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -72,21 +74,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::MoveForward(float InputValue)
 {
-	FVector ForwardDirection = GetActorForwardVector();
-	AddMovementInput(ForwardDirection, InputValue);
-}	
+	AddMovementInput(GetActorForwardVector(), InputValue);
+}
 
 void APlayerCharacter::MoveRight(float InputValue)
 {
-	FVector RightDirection = GetActorRightVector();
-	AddMovementInput(RightDirection, InputValue);
+	AddMovementInput(GetActorRightVector(), InputValue);
 }
 
 void APlayerCharacter::TurnCamera(float InputValue)
 {
 	AddControllerYawInput(InputValue);
 }
-
 
 void APlayerCharacter::LookUp(float InputValue)
 {
@@ -105,10 +104,19 @@ void APlayerCharacter::StopSprinting()
 
 void APlayerCharacter::EquipWeapon(AFirearmBase* NewWeapon)
 {
-	if (!NewWeapon) return;
-	if (CurrentWeapon) CurrentWeapon->SetActorHiddenInGame(true);
+	if (!NewWeapon)
+	{
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetActorHiddenInGame(true);
+	}
+
 	CurrentWeapon = NewWeapon;
 	CurrentWeapon->SetActorHiddenInGame(false);
+	OnWeaponChanged.Broadcast(CurrentWeapon);
 }
 
 void APlayerCharacter::SwitchToDefaultWeapon()
@@ -118,26 +126,31 @@ void APlayerCharacter::SwitchToDefaultWeapon()
 
 void APlayerCharacter::SwitchToSecondaryWeapon()
 {
-	if (SecondaryWeapon) EquipWeapon(SecondaryWeapon);
+	if (SecondaryWeapon)
+	{
+		EquipWeapon(SecondaryWeapon);
+	}
 }
 
 void APlayerCharacter::FireWeapon()
 {
-	if (CurrentWeapon) CurrentWeapon->Fire(this);
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->Fire(this);
+	}
 }
 
 void APlayerCharacter::PickupSecondaryWeapon(int32 AmmoAmount)
 {
+	CollectWeaponOrAmmo(AmmoAmount);
+}
+
+bool APlayerCharacter::CollectWeaponOrAmmo(int32 AmmoAmount)
+{
+	// Polymorphic call without casting to ASecondaryWeapon (LSP & OCP compliant)
 	if (SecondaryWeapon)
 	{
-		ASecondaryWeapon* Weapon = Cast<ASecondaryWeapon>(SecondaryWeapon);
-
-		if (Weapon)
-		{
-			Weapon->AddAmmo(AmmoAmount);
-		}
-
-		return;
+		return SecondaryWeapon->AddAmmo(AmmoAmount);
 	}
 
 	if (SecondaryWeaponClass)
@@ -146,7 +159,6 @@ void APlayerCharacter::PickupSecondaryWeapon(int32 AmmoAmount)
 		Params.Owner = this;
 
 		SecondaryWeapon = GetWorld()->SpawnActor<AFirearmBase>(SecondaryWeaponClass, Params);
-
 		if (SecondaryWeapon)
 		{
 			SecondaryWeapon->AttachToComponent(
@@ -156,6 +168,32 @@ void APlayerCharacter::PickupSecondaryWeapon(int32 AmmoAmount)
 			);
 
 			EquipWeapon(SecondaryWeapon);
+			return true;
 		}
 	}
+
+	return false;
+}
+
+bool APlayerCharacter::CollectHealth(float HealAmount)
+{
+	return HealthComponent ? HealthComponent->Heal(HealAmount) : false;
+}
+
+bool APlayerCharacter::NeedsAmmo() const
+{
+	if (!SecondaryWeapon)
+	{
+		return true; // Still needs to pick up the secondary weapon
+	}
+	return SecondaryWeapon->GetCurrentAmmo() < (SecondaryWeapon->GetMaxAmmo() / 2);
+}
+
+bool APlayerCharacter::NeedsHealth() const
+{
+	if (!HealthComponent)
+	{
+		return false;
+	}
+	return HealthComponent->GetCurrentHealth() < 75.0f;
 }

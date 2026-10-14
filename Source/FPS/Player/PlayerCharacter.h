@@ -4,38 +4,58 @@
 #include "GameFramework/Character.h"
 #include "Camera/CameraComponent.h"
 #include "FPS/Health/PlayerHealthComponent.h"
+#include "FPS/Interfaces/PickupCollectorInterface.h"
 #include "PlayerCharacter.generated.h"
 
 class AFirearmBase;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponChanged, AFirearmBase*, CurrentWeapon);
+
 UCLASS()
-class FPS_API APlayerCharacter : public ACharacter
+class FPS_API APlayerCharacter : public ACharacter, public IPickupCollectorInterface
 {
 	GENERATED_BODY()
 
-	
-
 public:
-	// Sets default values for this character's properties
 	APlayerCharacter();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-protected:
+	// IPickupCollectorInterface implementation
+	virtual bool CollectWeaponOrAmmo(int32 AmmoAmount) override;
+	virtual bool CollectHealth(float HealAmount) override;
+	virtual bool NeedsAmmo() const override;
+	virtual bool NeedsHealth() const override;
 
-	UPROPERTY(EditAnywhere)
+	// Public combat & movement actions so Bots and Player Controllers can invoke them
+	void Sprint();
+	void StopSprinting();
+	void EquipWeapon(AFirearmBase* NewWeapon);
+	void SwitchToDefaultWeapon();
+	void SwitchToSecondaryWeapon();
+	void FireWeapon();
+	void PickupSecondaryWeapon(int32 AmmoAmount);
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	AFirearmBase* GetSecondaryWeapon() const { return SecondaryWeapon; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	AFirearmBase* GetCurrentWeapon() const { return CurrentWeapon; }
+
+	UFUNCTION(BlueprintPure, Category = "Health")
+	UPlayerHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon|Events")
+	FOnWeaponChanged OnWeaponChanged;
+
+protected:
+	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
 	class UCameraComponent* PlayerCam;
 
-	UPROPERTY(VisibleAnywhere, Category = "Health")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
 	UPlayerHealthComponent* HealthComponent;
 
 	UPROPERTY(EditAnywhere, Category = "UI")
@@ -45,8 +65,6 @@ protected:
 	void MoveRight(float InputValue);
 	void TurnCamera(float InputValue);
 	void LookUp(float InputValue);
-	void Sprint();
-	void StopSprinting();
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float SprintSpeed = 1200.0f;
@@ -60,22 +78,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AFirearmBase> SecondaryWeaponClass;
 
-	UPROPERTY() AFirearmBase* DefaultWeapon;
-	UPROPERTY() AFirearmBase* SecondaryWeapon;
-	UPROPERTY() AFirearmBase* CurrentWeapon;
+	UPROPERTY()
+	AFirearmBase* DefaultWeapon;
 
-	void EquipWeapon(AFirearmBase* NewWeapon);
-	void SwitchToDefaultWeapon();
-	void SwitchToSecondaryWeapon();
-	void FireWeapon();
+	UPROPERTY()
+	AFirearmBase* SecondaryWeapon;
 
-public:
-
-	void PickupSecondaryWeapon(int32 AmmoAmount);
-
-	AFirearmBase* GetSecondaryWeapon() const { return SecondaryWeapon; }
-
-	AFirearmBase* GetCurrentWeapon() const { return CurrentWeapon; }
-
-
+	UPROPERTY()
+	AFirearmBase* CurrentWeapon;
 };

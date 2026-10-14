@@ -1,10 +1,12 @@
 #include "FPS/Firearm/FirearmBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 AFirearmBase::AFirearmBase()
 {
 	FirearmMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FirearmMesh"));
 	RootComponent = FirearmMesh;
+	FirearmMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AFirearmBase::Fire(APawn* InstigatorPawn)
@@ -24,14 +26,26 @@ void AFirearmBase::Fire(APawn* InstigatorPawn)
 	Params.AddIgnoredActor(this);
 
 	FHitResult Hit;
+	FVector TraceEnd = End;
+
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
 	{
-		AActor* HitActor = Hit.GetActor();
-		if (HitActor)
+		TraceEnd = Hit.ImpactPoint;
+		if (AActor* HitActor = Hit.GetActor())
 		{
-			UGameplayStatics::ApplyDamage(Hit.GetActor(), Damage, InstigatorPawn->GetController(), this, UDamageType::StaticClass());
+			UGameplayStatics::ApplyDamage(
+				HitActor,
+				Damage,
+				InstigatorPawn->GetController(),
+				this,
+				UDamageType::StaticClass()
+			);
 		}
 	}
+
+	// Visual shot feedback required by the Part 1 brief
+	FVector MuzzleStart = FirearmMesh ? FirearmMesh->GetComponentLocation() : Start;
+	DrawDebugLine(GetWorld(), MuzzleStart, TraceEnd, TracerColor, false, 0.12f, 0, 1.5f);
 }
 
 AFirearmBase::~AFirearmBase()
