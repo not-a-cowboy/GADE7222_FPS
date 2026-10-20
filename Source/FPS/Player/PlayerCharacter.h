@@ -55,6 +55,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	class UCameraComponent* PlayerCam;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	class USceneComponent* WeaponMount;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
 	UPlayerHealthComponent* HealthComponent;
 

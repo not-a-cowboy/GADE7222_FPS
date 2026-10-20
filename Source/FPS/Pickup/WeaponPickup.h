@@ -12,6 +12,8 @@ class FPS_API AWeaponPickup : public AActor
 public:
 	AWeaponPickup();
 
+	bool IsActive() const { return bIsActive; } //bots will use this to determine if they should go for the pickup or not
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -23,6 +25,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Pickup")
 	int32 AmmoAmount = 30;
+
+	UPROPERTY(EditAnywhere, Category = "Pickup")
+	float RespawnTime = 10.0f;
+
+	bool bIsActive = true;
+	FTimerHandle RespawnTimerHandle;
+
+	void RespawnPickup();
 
 	UFUNCTION()
 	void OnPickupOverlap(

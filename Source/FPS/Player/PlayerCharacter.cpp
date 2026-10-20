@@ -13,6 +13,10 @@ APlayerCharacter::APlayerCharacter()
 	PlayerCam->SetupAttachment(GetRootComponent());
 	PlayerCam->bUsePawnControlRotation = true;
 
+	WeaponMount = CreateDefaultSubobject<USceneComponent>(TEXT("WeaponMount"));
+	WeaponMount->SetupAttachment(PlayerCam);
+	WeaponMount->SetRelativeLocation(FVector(45.0f, 25.0f, -20.0f));
+
 	HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
 }
 
@@ -38,9 +42,8 @@ void APlayerCharacter::BeginPlay()
 		if (DefaultWeapon)
 		{
 			DefaultWeapon->AttachToComponent(
-				GetMesh(),
-				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-				TEXT("WeaponSocket")
+				WeaponMount,
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale
 			);
 			EquipWeapon(DefaultWeapon);
 		}
@@ -162,9 +165,8 @@ bool APlayerCharacter::CollectWeaponOrAmmo(int32 AmmoAmount)
 		if (SecondaryWeapon)
 		{
 			SecondaryWeapon->AttachToComponent(
-				GetMesh(),
-				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-				TEXT("WeaponSocket")
+				WeaponMount,
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale
 			);
 
 			EquipWeapon(SecondaryWeapon);
