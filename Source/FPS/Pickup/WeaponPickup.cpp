@@ -13,7 +13,7 @@ AWeaponPickup::AWeaponPickup()
 	RootComponent = PickupMesh;
 	PickupMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// Automatically assign Unreal's built-in Cube so it is immediately visible in the level
+	//Cube by default, mesh to be placed later in the editor
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())
 	{

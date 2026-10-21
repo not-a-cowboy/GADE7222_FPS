@@ -131,7 +131,7 @@ void ABotAIController::UpdatePerception()
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	const bool bRecentlyShot = (CurrentTime - LastDamagedTime) < 3.0f;
 
-	// 1. Scan for Closest Visible Target (Player or other Bots)
+	//Scans for Closest Visible Target 
 	TArray<AActor*> AllCharacters;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCharacter::StaticClass(), AllCharacters);
 
@@ -172,7 +172,7 @@ void ABotAIController::UpdatePerception()
 		bHasLastKnownTarget = false;
 	}
 
-	// 2. Scan for Pickups without coupling to concrete Pickup headers
+	//Scans for Pickups without coupling to concrete Pickup headers
 	TArray<AActor*> AllActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), AllActors);
 
@@ -211,7 +211,7 @@ void ABotAIController::EvaluatePriorities()
 {
 	const float CurrentHP = ControlledBot->GetHealthComponent()->GetCurrentHealth();
 
-	// 1. SURVIVAL (< 25 HP): Avoid target & seek cover or health
+	//Avoid target & seek cover or health [HP < 25]
 	if (CurrentHP < 25.0f && CurrentTarget)
 	{
 		CurrentState = EBotState::EvadingTarget;
@@ -230,7 +230,7 @@ void ABotAIController::EvaluatePriorities()
 
 	ControlledBot->StopSprinting();
 
-	// 2. COMBAT ENGAGEMENT (Sees Target & HP >= 25): Select optimal weapon & strafe
+	//Engage target if visible and healthy enough [HP >= 25]
 	if (CurrentTarget)
 	{
 		CurrentState = EBotState::EngagingTarget;
@@ -275,7 +275,7 @@ void ABotAIController::EvaluatePriorities()
 		return;
 	}
 
-	// 3. HEALTH SCAVENGING (Patrolling, HP < 75, and sees Health Pickup)
+	//Seek health if visible and bot is below 75% HP [HP < 75]
 	if (CurrentHP < 75.0f && VisibleHealthPickup)
 	{
 		CurrentState = EBotState::SeekingHealth;
@@ -283,7 +283,7 @@ void ABotAIController::EvaluatePriorities()
 		return;
 	}
 
-	// 4. AMMO SCAVENGING (Patrolling / NOT shooting a target, sees Ammo Pickup, needs ammo or secondary gun)
+	//Sek ammo if visible and bot needs ammo [NeedsAmmo]
 	if (ControlledBot->NeedsAmmo() && VisibleWeaponPickup)
 	{
 		CurrentState = EBotState::SeekingAmmo;
@@ -291,7 +291,7 @@ void ABotAIController::EvaluatePriorities()
 		return;
 	}
 
-	// 5. INVESTIGATE LAST KNOWN TARGET POSITION (Smart AI Object Permanence)
+	//Ib=nvestigate last known target location
 	if (bHasLastKnownTarget && CurrentHP >= 50.0f)
 	{
 		CurrentState = EBotState::InvestigatingLastSeen;
@@ -303,7 +303,7 @@ void ABotAIController::EvaluatePriorities()
 		return;
 	}
 
-	// 6. DEFAULT ARENA PATROL
+
 	CurrentState = EBotState::Patrolling;
 	PatrolArena();
 }

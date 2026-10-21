@@ -12,7 +12,7 @@ class FPS_API ABotCharacter : public APlayerCharacter
 public:
 	ABotCharacter();
 
-	// Editable per-instance color in the Level Editor so all 4+ bots are visually distinct (5 Marks)
+	//Editable color for the bot's appearance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bot|Appearance")
 	FLinearColor BotColor = FLinearColor::Red;
 

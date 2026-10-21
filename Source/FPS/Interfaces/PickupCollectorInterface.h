@@ -6,7 +6,6 @@
 #include "UObject/Interface.h"
 #include "PickupCollectorInterface.generated.h"
 
-// This class does not need to be modified.
 UINTERFACE(MinimalAPI)
 class UPickupCollectorInterface : public UInterface
 {

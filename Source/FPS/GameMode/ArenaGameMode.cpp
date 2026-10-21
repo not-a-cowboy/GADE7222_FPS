@@ -12,7 +12,7 @@ void AArenaGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Collect all TargetPoints in the level to use as random respawn locations (Requirement: >= 3)
+	// Collect all TargetPoints in the level to use as random respawn locations
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATargetPoint::StaticClass(), RespawnPoints);
 
 	// Subscribe to OnDeath for all characters currently in the arena
