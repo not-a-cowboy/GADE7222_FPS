@@ -30,6 +30,7 @@ AWeaponPickup::AWeaponPickup()
 	PickupCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	PickupCollision->OnComponentBeginOverlap.AddDynamic(this, &AWeaponPickup::OnPickupOverlap);
+	Tags.Add(TEXT("WeaponPickup"));
 }
 
 void AWeaponPickup::BeginPlay()

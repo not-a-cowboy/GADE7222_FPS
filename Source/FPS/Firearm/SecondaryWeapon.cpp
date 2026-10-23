@@ -1,5 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-#include "SecondaryWeapon.h"
 #include "FPS/Firearm/SecondaryWeapon.h"
 
 ASecondaryWeapon::ASecondaryWeapon()

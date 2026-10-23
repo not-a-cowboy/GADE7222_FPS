@@ -68,7 +68,15 @@ void ABotCharacter::BeginPlay()
 		);
 	}
 
-
+	if (HealthComponent && HealthBarComponent)
+	{
+		HealthComponent->OnHealthChanged.AddDynamic(
+			this,
+			&ABotCharacter::UpdateBotHealthBar
+		);
+		//This will initialise the bar to 100% 
+		UpdateBotHealthBar(HealthComponent->GetCurrentHealth(), HealthComponent->GetMaxHealth());
+	}
 }
 void ABotCharacter::UpdateBotHealthBar(float CurrentHealth, float MaxHealth)
 {

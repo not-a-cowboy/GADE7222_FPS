@@ -1,4 +1,5 @@
 #include "FPS/Player/PlayerCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -18,6 +19,8 @@ APlayerCharacter::APlayerCharacter()
 	WeaponMount->SetRelativeLocation(FVector(45.0f, 25.0f, -20.0f));
 
 	HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 }
 
 void APlayerCharacter::BeginPlay()
