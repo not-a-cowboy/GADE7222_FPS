@@ -1,27 +1,32 @@
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "ArenaGameMode.generated.h"
 
+class APlayerCharacter;
+
 UCLASS()
 class FPS_API AArenaGameMode : public AGameModeBase
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	AArenaGameMode();
+    AArenaGameMode();
 
-	void RegisterParticipant(class APlayerCharacter* Participant);
+    void RegisterParticipant(APlayerCharacter* Participant);
 
 protected:
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
-	UPROPERTY()
-	TArray<AActor*> RespawnPoints;
+    UPROPERTY()
+    TArray<AActor*> RespawnPoints;
 
-	UFUNCTION()
-	void HandleCharacterDeath(AActor* DeadActor, AController* InstigatedBy);
+    UFUNCTION()
+    void HandleCharacterDeath(AActor* DeadActor, AController* InstigatedBy);
 
-	void RespawnCharacter(class APlayerCharacter* DeadCharacter);
+    void RespawnCharacter(APlayerCharacter* DeadCharacter);
+
+    void AssignRandomStartingPositions();
 };
