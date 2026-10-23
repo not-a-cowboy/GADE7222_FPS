@@ -1,4 +1,5 @@
-#include "PlayerHealthComponent.h"
+#include "FPS/Health/PlayerHealthComponent.h"
+#include "GameFramework/Actor.h"
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
@@ -11,49 +12,66 @@ void UPlayerHealthComponent::BeginPlay()
 
 	CurrentHealth = MaxHealth;
 
+	// Observer Pattern: Component listens to its Owner's damage events automatically
+	if (AActor* Owner = GetOwner())
+	{
+		Owner->OnTakeAnyDamage.AddDynamic(this, &UPlayerHealthComponent::HandleTakeAnyDamage);
+	}
+
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 }
 
-void UPlayerHealthComponent::TakeDamage(float DamageAmount)
+void UPlayerHealthComponent::HandleTakeAnyDamage(
+	AActor* DamagedActor,
+	float Damage,
+	const UDamageType* DamageType,
+	AController* InstigatedBy,
+	AActor* DamageCauser)
 {
-	if (DamageAmount <= 0.0f)
+	TakeDamage(Damage, InstigatedBy);
+}
+
+void UPlayerHealthComponent::TakeDamage(float DamageAmount, AController* InstigatedBy)
+{
+	if (DamageAmount <= 0.0f || CurrentHealth <= 0.0f)
 	{
 		return;
 	}
 
-	CurrentHealth -= DamageAmount;
-
-	CurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, MaxHealth);
-
+	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 
 	if (CurrentHealth <= 0.0f)
 	{
-		Die();
+		Die(InstigatedBy);
 	}
 }
 
-float UPlayerHealthComponent::GetCurrentHealth() const
+bool UPlayerHealthComponent::Heal(float HealAmount)
 {
-	return CurrentHealth;
+	if (HealAmount <= 0.0f || CurrentHealth <= 0.0f || CurrentHealth >= MaxHealth)
+	{
+		return false;
+	}
+
+	CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
+	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	return true;
 }
 
-float UPlayerHealthComponent::GetMaxHealth() const
+void UPlayerHealthComponent::ResetHealth()
 {
-	return MaxHealth;
+	CurrentHealth = MaxHealth;
+	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 }
 
 float UPlayerHealthComponent::GetHealthPercent() const
 {
-	if (MaxHealth <= 0.0f)
-	{
-		return 0.0f;
-	}
-
-	return CurrentHealth / MaxHealth;
+	return (MaxHealth > 0.0f) ? (CurrentHealth / MaxHealth) : 0.0f;
 }
 
-void UPlayerHealthComponent::Die()
+void UPlayerHealthComponent::Die(AController* KillerController)
 {
-	UE_LOG(LogTemp, Warning, TEXT("PLAYER HAS DIED!"));
+	UE_LOG(LogTemp, Warning, TEXT("%s HAS DIED!"), *GetNameSafe(GetOwner()));
+	OnDeath.Broadcast(GetOwner(), KillerController);
 }
