@@ -5,6 +5,8 @@
 #include "Components/SphereComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "TimerManager.h"
 #include "FPS/Interfaces/PickupCollectorInterface.h"
 
@@ -96,4 +98,3 @@ void AHealthPickup::RespawnPickup()
     SetActorHiddenInGame(false);
     SetActorEnableCollision(true);
 }
-

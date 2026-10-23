@@ -4,6 +4,10 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 #include "FPS/AI/BotAIController.h"
+#include "FPS/Health/PlayerHealthComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Components/ProgressBar.h"
+#include "Blueprint/UserWidget.h"
 #include "FPS/GameMode/ArenaGameMode.h"
 
 ABotCharacter::ABotCharacter()
@@ -29,6 +33,11 @@ ABotCharacter::ABotCharacter()
 		BotBodyMesh->SetStaticMesh(CylinderMesh.Object);
 		BotBodyMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.75f));
 	}
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarComponent->SetupAttachment(RootComponent);
+	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
+	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComponent->SetDrawSize(FVector2D(100.0f, 15.0f));
 }
 
 void ABotCharacter::BeginPlay()
@@ -49,5 +58,40 @@ void ABotCharacter::BeginPlay()
 	if (AArenaGameMode* GM = GetWorld()->GetAuthGameMode<AArenaGameMode>())
 	{
 		GM->RegisterParticipant(this);
+	}
+
+	if (HealthComponent && HealthBarComponent)
+	{
+		HealthComponent->OnHealthChanged.AddDynamic(
+			this,
+			&ABotCharacter::UpdateBotHealthBar
+		);
+	}
+
+
+}
+void ABotCharacter::UpdateBotHealthBar(float CurrentHealth, float MaxHealth)
+{
+	if (!HealthBarComponent || MaxHealth <= 0.0f)
+	{
+		return;
+	}
+
+	UUserWidget* Widget = HealthBarComponent->GetUserWidgetObject();
+
+	if (!Widget)
+	{
+		return;
+	}
+
+	UProgressBar* HealthBar = Cast<UProgressBar>(
+		Widget->GetWidgetFromName(TEXT("HealthProgressBar"))
+	);
+
+	if (HealthBar)
+	{
+		HealthBar->SetPercent(
+			FMath::Clamp(CurrentHealth / MaxHealth, 0.0f, 1.0f)
+		);
 	}
 }

@@ -4,6 +4,10 @@
 #include "FPS/Player/PlayerCharacter.h"
 #include "BotCharacter.generated.h"
 
+class UWidgetComponent;
+class UProgressBar;
+
+
 UCLASS()
 class FPS_API ABotCharacter : public APlayerCharacter
 {
@@ -21,4 +25,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Bot|Appearance")
 	UStaticMeshComponent* BotBodyMesh;
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "UI")
+	UWidgetComponent* HealthBarComponent;
+
+	UFUNCTION()
+	void UpdateBotHealthBar(float CurrentHealth, float MaxHealth);
 };
