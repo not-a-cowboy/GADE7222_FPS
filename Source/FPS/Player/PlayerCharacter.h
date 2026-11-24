@@ -68,6 +68,7 @@ protected:
 	void MoveRight(float InputValue);
 	void TurnCamera(float InputValue);
 	void LookUp(float InputValue);
+	void TogglePause();
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float SprintSpeed = 1200.0f;

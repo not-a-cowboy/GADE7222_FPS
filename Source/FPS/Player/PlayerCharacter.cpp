@@ -5,6 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "FPS/Firearm/FirearmBase.h"
+#include "FPS/GameMode/ArenaGameMode.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -76,6 +77,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APlayerCharacter::FireWeapon);
 	PlayerInputComponent->BindAction("Switch1", IE_Pressed, this, &APlayerCharacter::SwitchToDefaultWeapon);
 	PlayerInputComponent->BindAction("Switch2", IE_Pressed, this, &APlayerCharacter::SwitchToSecondaryWeapon);
+
+	FInputActionBinding& PauseBinding = PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &APlayerCharacter::TogglePause);
+	PauseBinding.bExecuteWhenPaused = true;
 }
 
 void APlayerCharacter::MoveForward(float InputValue)
@@ -201,4 +205,12 @@ bool APlayerCharacter::NeedsHealth() const
 		return false;
 	}
 	return HealthComponent->GetCurrentHealth() < 75.0f;
+}
+
+void APlayerCharacter::TogglePause()
+{
+	if (AArenaGameMode* GM = GetWorld()->GetAuthGameMode<AArenaGameMode>())
+	{
+		GM->TogglePauseMatch();
+	}
 }

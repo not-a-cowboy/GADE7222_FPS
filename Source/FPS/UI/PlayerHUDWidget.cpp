@@ -5,14 +5,16 @@
 #include "FPS/Player/PlayerCharacter.h"
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "FPS/Firearm/FirearmBase.h"
+#include "FPS/GameMode/ArenaGameMode.h"
 
 void UPlayerHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (ObjectiveText)
+	if (AArenaGameMode* GM = GetWorld()->GetAuthGameMode<AArenaGameMode>())
 	{
-		ObjectiveText->SetText(FText::FromString(TEXT("ACT II // ARENA DEATHMATCH")));
+		GM->OnMatchTimeUpdated.AddDynamic(this, &UPlayerHUDWidget::HandleMatchTimeUpdated);
+		HandleMatchTimeUpdated(GM->GetRemainingMatchTime());
 	}
 
 	if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwningPlayerPawn()))
@@ -28,21 +30,44 @@ void UPlayerHUDWidget::NativeConstruct()
 	}
 }
 
+void UPlayerHUDWidget::HandleMatchTimeUpdated(float RemainingSeconds)
+{
+	if (!ObjectiveText)
+	{
+		return;
+	}
+
+	const int32 TotalSeconds = FMath::CeilToInt(RemainingSeconds);
+	const int32 Minutes = TotalSeconds / 60;
+	const int32 Seconds = TotalSeconds % 60;
+
+	ObjectiveText->SetText(FText::FromString(
+		FString::Printf(TEXT("MATCH TIME // %02d:%02d"), Minutes, Seconds)
+	));
+
+	if (TotalSeconds <= 30)
+	{
+		ObjectiveText->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.2f, 0.2f, 1.0f)));
+	}
+	else
+	{
+		ObjectiveText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	}
+}
+
 FLinearColor UPlayerHUDWidget::GetDynamicHealthColor(float HealthPercent) const
 {
-	const FLinearColor GreenColor(0.15f, 0.95f, 0.35f, 1.0f);  // High HP
-	const FLinearColor OrangeColor(1.0f, 0.65f, 0.1f, 1.0f);   // Mid HP 
-	const FLinearColor RedColor(0.95f, 0.15f, 0.15f, 1.0f);    // Low HP
+	const FLinearColor GreenColor(0.15f, 0.95f, 0.35f, 1.0f);
+	const FLinearColor OrangeColor(1.0f, 0.65f, 0.1f, 1.0f);
+	const FLinearColor RedColor(0.95f, 0.15f, 0.15f, 1.0f);
 
 	if (HealthPercent >= 0.5f)
 	{
-		// Blend from Yellow-Orange (0.5) to Green (1.0)
 		const float Alpha = (HealthPercent - 0.5f) / 0.5f;
 		return FMath::Lerp(OrangeColor, GreenColor, Alpha);
 	}
 	else
 	{
-		// Blend from Red (0.0) to Yellow-Orange (0.5)
 		const float Alpha = FMath::Clamp(HealthPercent / 0.5f, 0.0f, 1.0f);
 		return FMath::Lerp(RedColor, OrangeColor, Alpha);
 	}
@@ -82,13 +107,12 @@ void UPlayerHUDWidget::HandleWeaponChanged(AFirearmBase* NewWeapon)
 
 	const bool bIsInfiniteDefault = (ObservedWeapon->GetMaxAmmo() < 0);
 
-	
 	if (WeaponIcon)
 	{
 		UTexture2D* TargetIcon = bIsInfiniteDefault ? DefaultWeaponTexture : SecondaryWeaponTexture;
 		if (TargetIcon)
 		{
-			WeaponIcon->SetBrushFromTexture(TargetIcon);
+			WeaponIcon->SetBrushFromTexture(TargetIcon, true);
 		}
 	}
 
@@ -110,7 +134,6 @@ void UPlayerHUDWidget::HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
 
 	if (MaxAmmo < 0)
 	{
-		// Infinity symbol for the Default Firearm
 		AmmoText->SetText(FText::FromString(TEXT("\u221E")));
 	}
 	else
