@@ -31,6 +31,7 @@ void AFirearmBase::Fire(APawn* InstigatorPawn)
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
 	{
 		TraceEnd = Hit.ImpactPoint;
+
 		if (AActor* HitActor = Hit.GetActor())
 		{
 			UGameplayStatics::ApplyDamage(

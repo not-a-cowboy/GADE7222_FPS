@@ -5,6 +5,13 @@
 #include "BotAIController.generated.h"
 
 class APlayerCharacter;
+class FBotState;
+class FPatrollingBotState;
+class FEngagingBotState;
+class FEvadingBotState;
+class FSeekingHealthBotState;
+class FSeekingAmmoBotState;
+class FInvestigatingBotState;
 
 UENUM(BlueprintType)
 enum class EBotState : uint8
@@ -21,6 +28,13 @@ UCLASS()
 class FPS_API ABotAIController : public AAIController
 {
 	GENERATED_BODY()
+
+	friend class FPatrollingBotState;
+	friend class FEngagingBotState;
+	friend class FEvadingBotState;
+	friend class FSeekingHealthBotState;
+	friend class FSeekingAmmoBotState;
+	friend class FInvestigatingBotState;
 
 public:
 	ABotAIController();
@@ -59,6 +73,8 @@ protected:
 	UPROPERTY()
 	AActor* VisibleWeaponPickup;
 
+	FBotState* ActiveState = nullptr;
+
 	// Object Permanence (Smart AI Target Memory)
 	FVector LastKnownTargetLocation = FVector::ZeroVector;
 	bool bHasLastKnownTarget = false;
@@ -76,6 +92,9 @@ protected:
 	void FaceMovementDirection(float DeltaTime);
 	void FleeToCoverOrSafety();
 	void PatrolArena();
+	void ExecuteCurrentState();
+	void ExecuteCombatMovement();
+	void SetBotState(EBotState NewState);
 
 	bool CanSeeActor(AActor* TargetActor, bool bIgnoreFOV = false) const;
 	bool IsPickupAvailable(AActor* PickupActor) const;

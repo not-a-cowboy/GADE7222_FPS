@@ -6,6 +6,107 @@
 #include "FPS/Health/PlayerHealthComponent.h"
 #include "FPS/Firearm/FirearmBase.h"
 
+class FBotState
+{
+public:
+	virtual ~FBotState() = default;
+	virtual void Execute(ABotAIController& Controller) = 0;
+};
+
+class FPatrollingBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->StopSprinting();
+		Controller.PatrolArena();
+	}
+};
+
+class FEngagingBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->StopSprinting();
+
+		if (AFirearmBase* SecWeapon =
+			Controller.ControlledBot->GetSecondaryWeapon())
+		{
+			if (SecWeapon->HasAmmo())
+			{
+				Controller.ControlledBot->SwitchToSecondaryWeapon();
+			}
+			else
+			{
+				Controller.ControlledBot->SwitchToDefaultWeapon();
+			}
+		}
+		else
+		{
+			Controller.ControlledBot->SwitchToDefaultWeapon();
+		}
+
+		Controller.ExecuteCombatMovement();
+	}
+};
+
+class FEvadingBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->Sprint();
+
+		if (Controller.VisibleHealthPickup)
+		{
+			Controller.MoveToActor(Controller.VisibleHealthPickup, 15.0f);
+		}
+		else
+		{
+			Controller.FleeToCoverOrSafety();
+		}
+	}
+};
+
+class FSeekingHealthBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->StopSprinting();
+		Controller.MoveToActor(Controller.VisibleHealthPickup, 15.0f);
+	}
+};
+
+class FSeekingAmmoBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->StopSprinting();
+		Controller.MoveToActor(Controller.VisibleWeaponPickup, 15.0f);
+	}
+};
+
+class FInvestigatingBotState : public FBotState
+{
+public:
+	virtual void Execute(ABotAIController& Controller) override
+	{
+		Controller.ControlledBot->StopSprinting();
+
+		Controller.MoveToLocation(Controller.LastKnownTargetLocation, 50.0f);
+
+		if (FVector::DistSquared2D(
+			Controller.ControlledBot->GetActorLocation(),
+			Controller.LastKnownTargetLocation) < FMath::Square(120.0f))
+		{
+			Controller.bHasLastKnownTarget = false;
+		}
+	}
+};
+
 ABotAIController::ABotAIController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -48,8 +149,12 @@ void ABotAIController::Tick(float DeltaTime)
 	if (CurrentTime - LastDecisionTime >= 0.2f)
 	{
 		LastDecisionTime = CurrentTime;
+
 		UpdatePerception();
+
 		EvaluatePriorities();
+
+		ExecuteCurrentState();
 	}
 
 	if (CurrentState == EBotState::EngagingTarget && CurrentTarget)
@@ -209,103 +314,151 @@ void ABotAIController::UpdatePerception()
 
 void ABotAIController::EvaluatePriorities()
 {
-	const float CurrentHP = ControlledBot->GetHealthComponent()->GetCurrentHealth();
+	const float CurrentHP =
+		ControlledBot->GetHealthComponent()->GetCurrentHealth();
 
-	// 1. SURVIVAL (< 25 HP): Avoid target & seek cover or health
+	// 1. Evade when health is below 25
 	if (CurrentHP < 25.0f && CurrentTarget)
 	{
-		CurrentState = EBotState::EvadingTarget;
-		ControlledBot->Sprint();
-
-		if (VisibleHealthPickup)
-		{
-			MoveToActor(VisibleHealthPickup, 15.0f);
-		}
-		else
-		{
-			FleeToCoverOrSafety();
-		}
+		SetBotState(EBotState::EvadingTarget);
 		return;
 	}
 
-	ControlledBot->StopSprinting();
-
-	// 2. COMBAT ENGAGEMENT (Sees Target & HP >= 25): Select optimal weapon & strafe
+	// 2. Engage visible targets
 	if (CurrentTarget)
 	{
-		CurrentState = EBotState::EngagingTarget;
-
-		AFirearmBase* SecWeapon = ControlledBot->GetSecondaryWeapon();
-		if (SecWeapon && SecWeapon->HasAmmo())
-		{
-			ControlledBot->SwitchToSecondaryWeapon();
-		}
-		else
-		{
-			ControlledBot->SwitchToDefaultWeapon();
-		}
-
-		// Tactical Circle-Strafing + Distance Management
-		const float CurrentTime = GetWorld()->GetTimeSeconds();
-		if (CurrentTime - LastStrafeTime >= 1.1f)
-		{
-			LastStrafeTime = CurrentTime;
-			if (UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld()))
-			{
-				const FVector BotLoc = ControlledBot->GetActorLocation();
-				const FVector ToTarget = CurrentTarget->GetActorLocation() - BotLoc;
-				const float Dist = ToTarget.Size();
-
-				const FVector RightVec = FVector::CrossProduct(ToTarget.GetSafeNormal2D(), FVector::UpVector);
-				const float StrafeSign = FMath::RandBool() ? 1.0f : -1.0f;
-
-				// Close in slightly if far (> 1400), back up if too close (< 500)
-				FVector ForwardAdjust = FVector::ZeroVector;
-				if (Dist > 1400.0f) ForwardAdjust = ToTarget.GetSafeNormal2D() * 250.0f;
-				else if (Dist < 500.0f) ForwardAdjust = -ToTarget.GetSafeNormal2D() * 250.0f;
-
-				const FVector CombatMoveGoal = BotLoc + (RightVec * StrafeSign * 320.0f) + ForwardAdjust;
-				FNavLocation ProjectedLoc;
-				if (NavSys->ProjectPointToNavigation(CombatMoveGoal, ProjectedLoc))
-				{
-					MoveToLocation(ProjectedLoc.Location, 15.0f);
-				}
-			}
-		}
+		SetBotState(EBotState::EngagingTarget);
 		return;
 	}
 
-	// 3. HEALTH SCAVENGING (Patrolling, HP < 75, and sees Health Pickup)
+	// 3. Seek health when below 75
 	if (CurrentHP < 75.0f && VisibleHealthPickup)
 	{
-		CurrentState = EBotState::SeekingHealth;
-		MoveToActor(VisibleHealthPickup, 15.0f);
+		SetBotState(EBotState::SeekingHealth);
 		return;
 	}
 
-	// 4. AMMO SCAVENGING (Patrolling / NOT shooting a target, sees Ammo Pickup, needs ammo or secondary gun)
+	// 4. Seek ammunition when needed
 	if (ControlledBot->NeedsAmmo() && VisibleWeaponPickup)
 	{
-		CurrentState = EBotState::SeekingAmmo;
-		MoveToActor(VisibleWeaponPickup, 15.0f);
+		SetBotState(EBotState::SeekingAmmo);
 		return;
 	}
 
-	// 5. INVESTIGATE LAST KNOWN TARGET POSITION (Smart AI Object Permanence)
+	// 5. Investigate last known target position
 	if (bHasLastKnownTarget && CurrentHP >= 50.0f)
 	{
-		CurrentState = EBotState::InvestigatingLastSeen;
-		MoveToLocation(LastKnownTargetLocation, 50.0f);
-		if (FVector::DistSquared2D(ControlledBot->GetActorLocation(), LastKnownTargetLocation) < FMath::Square(120.0f))
-		{
-			bHasLastKnownTarget = false;
-		}
+		SetBotState(EBotState::InvestigatingLastSeen);
 		return;
 	}
 
-	// 6. DEFAULT ARENA PATROL
-	CurrentState = EBotState::Patrolling;
-	PatrolArena();
+	// 6. Default behaviour
+	SetBotState(EBotState::Patrolling);
+}
+
+void ABotAIController::SetBotState(EBotState NewState)
+{
+	static FPatrollingBotState PatrollingState;
+	static FEngagingBotState EngagingState;
+	static FEvadingBotState EvadingState;
+	static FSeekingHealthBotState SeekingHealthState;
+	static FSeekingAmmoBotState SeekingAmmoState;
+	static FInvestigatingBotState InvestigatingState;
+
+	CurrentState = NewState;
+
+	switch (NewState)
+	{
+	case EBotState::Patrolling:
+		ActiveState = &PatrollingState;
+		break;
+
+	case EBotState::EngagingTarget:
+		ActiveState = &EngagingState;
+		break;
+
+	case EBotState::EvadingTarget:
+		ActiveState = &EvadingState;
+		break;
+
+	case EBotState::SeekingHealth:
+		ActiveState = &SeekingHealthState;
+		break;
+
+	case EBotState::SeekingAmmo:
+		ActiveState = &SeekingAmmoState;
+		break;
+
+	case EBotState::InvestigatingLastSeen:
+		ActiveState = &InvestigatingState;
+		break;
+	}
+}
+
+void ABotAIController::ExecuteCurrentState()
+{
+	if (ActiveState)
+	{
+		ActiveState->Execute(*this);
+	}
+}
+
+void ABotAIController::ExecuteCombatMovement()
+{
+	if (!CurrentTarget)
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	if (CurrentTime - LastStrafeTime >= 1.1f)
+	{
+		LastStrafeTime = CurrentTime;
+
+		if (UNavigationSystemV1* NavSys =
+			UNavigationSystemV1::GetCurrent(GetWorld()))
+		{
+			const FVector BotLoc = ControlledBot->GetActorLocation();
+
+			const FVector ToTarget =
+				CurrentTarget->GetActorLocation() - BotLoc;
+
+			const float Dist = ToTarget.Size();
+
+			const FVector RightVec =
+				FVector::CrossProduct(
+					ToTarget.GetSafeNormal2D(),
+					FVector::UpVector
+				);
+
+			const float StrafeSign =
+				FMath::RandBool() ? 1.0f : -1.0f;
+
+			FVector ForwardAdjust = FVector::ZeroVector;
+
+			if (Dist > 1400.0f)
+			{
+				ForwardAdjust = ToTarget.GetSafeNormal2D() * 250.0f;
+			}
+			else if (Dist < 500.0f)
+			{
+				ForwardAdjust = -ToTarget.GetSafeNormal2D() * 250.0f;
+			}
+
+			const FVector CombatMoveGoal =
+				BotLoc + (RightVec * StrafeSign * 320.0f)
+				+ ForwardAdjust;
+
+			FNavLocation ProjectedLoc;
+
+			if (NavSys->ProjectPointToNavigation(
+				CombatMoveGoal, ProjectedLoc))
+			{
+				MoveToLocation(ProjectedLoc.Location, 15.0f);
+			}
+		}
+	}
 }
 
 void ABotAIController::ExecuteCombat(float DeltaTime)

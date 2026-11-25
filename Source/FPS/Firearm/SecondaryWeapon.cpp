@@ -17,6 +17,7 @@ bool ASecondaryWeapon::AddAmmo(int32 AmmoAmount)
 
 	CurrentAmmo = FMath::Clamp(CurrentAmmo + AmmoAmount, 0, MaxAmmo);
 	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+
 	return true;
 }
 
@@ -29,5 +30,6 @@ bool ASecondaryWeapon::TryConsumeAmmo()
 
 	CurrentAmmo--;
 	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+
 	return true;
 }

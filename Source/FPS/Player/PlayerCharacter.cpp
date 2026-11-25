@@ -7,6 +7,37 @@
 #include "FPS/Firearm/FirearmBase.h"
 #include "FPS/GameMode/ArenaGameMode.h"
 
+class FPlayerMovementState
+{
+public:
+	virtual ~FPlayerMovementState() = default;
+	virtual void Apply(APlayerCharacter& Character) const = 0;
+};
+
+class FWalkingMovementState : public FPlayerMovementState
+{
+public:
+	virtual void Apply(APlayerCharacter& Character) const override
+	{
+		if (UCharacterMovementComponent* MoveComp = Character.GetCharacterMovement())
+		{
+			MoveComp->MaxWalkSpeed = Character.WalkSpeed;
+		}
+	}
+};
+
+class FSprintingMovementState : public FPlayerMovementState
+{
+public:
+	virtual void Apply(APlayerCharacter& Character) const override
+	{
+		if (UCharacterMovementComponent* MoveComp = Character.GetCharacterMovement())
+		{
+			MoveComp->MaxWalkSpeed = Character.SprintSpeed;
+		}
+	}
+};
+
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -22,6 +53,8 @@ APlayerCharacter::APlayerCharacter()
 	HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
 
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+	SetMovementState(EPlayerMovementState::Walking);
 }
 
 void APlayerCharacter::BeginPlay()
@@ -104,12 +137,36 @@ void APlayerCharacter::LookUp(float InputValue)
 
 void APlayerCharacter::Sprint()
 {
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	SetMovementState(EPlayerMovementState::Sprinting);
 }
 
 void APlayerCharacter::StopSprinting()
 {
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	SetMovementState(EPlayerMovementState::Walking);
+}
+
+void APlayerCharacter::SetMovementState(EPlayerMovementState NewState)
+{
+	static FWalkingMovementState WalkingState;
+	static FSprintingMovementState SprintingState;
+
+	CurrentMovementState = NewState;
+
+	switch (CurrentMovementState)
+	{
+	case EPlayerMovementState::Walking:
+		MovementStateObject = &WalkingState;
+		break;
+
+	case EPlayerMovementState::Sprinting:
+		MovementStateObject = &SprintingState;
+		break;
+	}
+
+	if (MovementStateObject)
+	{
+		MovementStateObject->Apply(*this);
+	}
 }
 
 void APlayerCharacter::EquipWeapon(AFirearmBase* NewWeapon)

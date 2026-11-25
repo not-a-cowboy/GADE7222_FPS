@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GameFramework/Actor.h"
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "FirearmBase.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmmoChanged, int32, CurrentAmmo, int32, MaxAmmo);
@@ -13,7 +13,8 @@ class FPS_API AFirearmBase : public AActor
 
 public:
 	AFirearmBase();
-	virtual void Fire(APawn* InstigatorPawn);
+
+	void Fire(APawn* InstigatorPawn);
 
 	~AFirearmBase();
 
@@ -39,5 +40,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Firearm")
 	UStaticMeshComponent* FirearmMesh;
 
-	virtual bool TryConsumeAmmo() {return true;}
+	// Template Method hook: derived weapons customise ammunition consumption.
+	virtual bool TryConsumeAmmo() { return true; }
 };

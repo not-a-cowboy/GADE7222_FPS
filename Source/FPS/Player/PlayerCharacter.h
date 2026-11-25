@@ -8,13 +8,26 @@
 #include "PlayerCharacter.generated.h"
 
 class AFirearmBase;
+class UUserWidget;
+class FPlayerMovementState;
+class FWalkingMovementState;
+class FSprintingMovementState;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponChanged, AFirearmBase*, CurrentWeapon);
+
+enum class EPlayerMovementState : uint8
+{
+	Walking,
+	Sprinting
+};
 
 UCLASS()
 class FPS_API APlayerCharacter : public ACharacter, public IPickupCollectorInterface
 {
 	GENERATED_BODY()
+
+	friend class FWalkingMovementState;
+	friend class FSprintingMovementState;
 
 public:
 	APlayerCharacter();
@@ -22,13 +35,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// IPickupCollectorInterface implementation
 	virtual bool CollectWeaponOrAmmo(int32 AmmoAmount) override;
 	virtual bool CollectHealth(float HealAmount) override;
 	virtual bool NeedsAmmo() const override;
 	virtual bool NeedsHealth() const override;
 
-	// Public combat & movement actions so Bots and Player Controllers can invoke them
 	void Sprint();
 	void StopSprinting();
 	void EquipWeapon(AFirearmBase* NewWeapon);
@@ -90,4 +101,11 @@ protected:
 
 	UPROPERTY()
 	AFirearmBase* CurrentWeapon;
+
+	EPlayerMovementState CurrentMovementState =
+		EPlayerMovementState::Walking;
+
+	FPlayerMovementState* MovementStateObject = nullptr;
+
+	void SetMovementState(EPlayerMovementState NewState);
 };
